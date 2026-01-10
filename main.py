@@ -7,11 +7,16 @@ load_dotenv()
 
 from src.weather_api import get_weather_json
 from src.utils import get_city_coordinates
-from src.ai_service import initial_gemini_client, generate_content_with_retry
+from src.ai_service import initial_gemini_client, generate_content_with_retry, get_bioweather_advice_local
 from src.user import generate_user_profile
 
+# read from config.json
+CONFIG_PATH = os.path.join(os.path.dirname(__file__), './config.json')
+with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
+    config = json.load(f)
+print(f"使用 LLM 供應商: {config.get('llm_provider')}")
+
 def main():
-    client = initial_gemini_client()
     # 設定檔案路徑物件
     file_path = Path("./data/userData.json")
 
@@ -45,9 +50,11 @@ def main():
     }
     # print(content_json)
 
-    response = generate_content_with_retry(client, json.dumps(content_json))
-    # response = model.generate_content(json.dumps(content_json))
-
+    if config.get('llm_provider') == 'gemini':
+        client = initial_gemini_client()
+        response = generate_content_with_retry(client, model_name=config.get('gemini_model'), prompt=json.dumps(content_json))
+    else:
+        response = get_bioweather_advice_local(model_name=config.get('ollama_model'), content=json.dumps(content_json))
     print(f"AI建議: {response}")
 
 

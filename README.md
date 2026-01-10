@@ -23,6 +23,7 @@
 	- `google-genai`
 	- `requests`
 	- `python-dotenv`
+	- `ollama` (僅在使用本地 Ollama 時需要)
 
 ---
 
@@ -31,7 +32,7 @@
 1. 取得程式碼：
 
 ```bash
-git clone <repo-url>
+git clone git@github.com:ZhongJunJimmy/BioWeather.git
 cd BioWeather
 ```
 
@@ -52,6 +53,36 @@ GEMINI_API_KEY=your_gemini_api_key_here
 （程式會透過 `python-dotenv` 載入 `.env`）
 
 注意：Open-Meteo API 為公開資料來源，不需 API Key。
+
+---
+
+**設定 LLM 供應商（可選：Gemini 或 本地 Ollama）**
+
+本專案現在支援兩種 LLM 執行方式：
+
+- 使用遠端 Google Gemini（需要在 `.env` 設定 `GEMINI_API_KEY`）。
+- 使用本機 Ollama（需在系統安裝並執行 Ollama daemon，並確保指定模型已下載）。
+
+設定方式請編輯 `config.json`（專案根目錄），範例：
+
+```json
+{
+	"llm_provider": "gemini",        
+	"ollama_model": "llama3.2",
+	"gemini_model": "gemini-2.5-flash"
+}
+```
+
+- 將 `llm_provider` 設為 `gemini` 或 `ollama`，程式會依此決定呼叫哪個後端。
+- 若使用 `ollama`，請確保本機 Ollama 可用，且 `ollama_model` 填寫正確模型名稱。
+
+程式啟動時會輸出目前使用的 LLM 供應商，例如：`使用 LLM 供應商: gemini`。
+
+---
+
+**注意：system prompt 存放位置**
+
+系統提示（system prompt）已從程式內文移出，改為放在 `data/system_prompt.txt`，可直接編輯該檔以調整模型指令。
 
 ---
 
