@@ -40,7 +40,7 @@ def generate_content_with_retry(
                 ],
                 config=types.GenerateContentConfig(
                     system_instruction=SYSTEM_PROMPT,
-                    max_output_tokens=128,
+                    max_output_tokens=1024,
                     temperature=0.2,
                 ),
             )

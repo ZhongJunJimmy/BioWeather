@@ -160,4 +160,3 @@ def build_decision_schema(
         "cold_tolerance": cold_tolerance_enum,
         "time_of_day": time_of_day,
     }
->>>>>>> 8fd8890a7639e03dc27d25c973199a084c7dd9e0
