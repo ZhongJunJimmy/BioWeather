@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from src.weather_api import get_weather_json
-from src.utils import get_city_coordinates
+from src.utils import get_city_coordinates, get_city_data_by_id
 from src.ai_service import initial_gemini_client, generate_content_with_retry, get_bioweather_advice_local
 from src.user import generate_user_profile
 
@@ -16,7 +16,9 @@ with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
     config = json.load(f)
 print(f"使用 LLM 供應商: {config.get('llm_provider')}")
 
+
 def main():
+    
     # 設定檔案路徑物件
     file_path = Path("./data/userData.json")
 
@@ -61,3 +63,27 @@ def main():
 if __name__ == '__main__':
     main()
 
+from fastapi import FastAPI
+
+app = FastAPI()
+
+@app.get("/getBioWeatherAdvice/{city_id}")
+async def root(city_id):
+    with open('./data/userData.json', 'r', encoding='utf-8') as f:
+        user_data = json.load(f)
+    del user_data['lastUpdated']
+
+    selected_city = get_city_data_by_id(city_id)
+    content_json={
+        "weather_data": get_weather_json(lat=selected_city['lat'], lon=selected_city['lon']),
+        "user_data": user_data
+    }
+    # print(content_json)
+
+    if config.get('llm_provider') == 'gemini':
+        client = initial_gemini_client()
+        response = generate_content_with_retry(client, model_name=config.get('gemini_model'), prompt=json.dumps(content_json))
+    else:
+        response = get_bioweather_advice_local(model_name=config.get('ollama_model'), content=json.dumps(content_json))
+    # print(f"AI建議: {response}")
+    return {"message": f"{response}"}
