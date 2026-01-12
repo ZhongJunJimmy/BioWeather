@@ -1,5 +1,5 @@
 {
-  "llm_provider": "gemini",
-  "ollama_model": "llama3.2",
+  "llm_provider": "ollama",
+  "ollama_model": "gemma3:4b",
   "gemini_model": "gemini-2.5-flash"
 }

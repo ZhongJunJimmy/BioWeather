@@ -78,16 +78,19 @@ async def root(city_id):
     del user_data['lastUpdated']
 
     selected_city = get_city_data_by_id(city_id)
-    content_json={
-        "weather_data": get_weather_json(lat=selected_city['lat'], lon=selected_city['lon']),
-        "user_data": user_data
-    }
-    # print(content_json)
+    weather_data = get_weather_json(lat=selected_city['lat'], lon=selected_city['lon'])
+    content = build_decision_schema(
+        weather=weather_data,
+        personal=user_data,
+        activity_level="low",
+        time_of_day="daytime",
+    )
+    
 
     if config.get('llm_provider') == 'gemini':
         client = initial_gemini_client()
-        response = generate_content_with_retry(client, model_name=config.get('gemini_model'), prompt=json.dumps(content_json))
+        response = generate_content_with_retry(client, model_name=config.get('gemini_model'), prompt=json.dumps(content))
     else:
-        response = get_bioweather_advice_local(model_name=config.get('ollama_model'), content=json.dumps(content_json))
+        response = get_bioweather_advice_local(model_name=config.get('ollama_model'), content=json.dumps(content))
     # print(f"AI建議: {response}")
     return {"message": f"{response}"}
