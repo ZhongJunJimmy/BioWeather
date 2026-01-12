@@ -6,7 +6,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from src.weather_api import get_weather_json
-from src.utils import get_city_coordinates, get_city_data_by_id
+from src.utils import get_city_coordinates, get_city_data_by_id,build_decision_schema
+
 from src.ai_service import initial_gemini_client, generate_content_with_retry, get_bioweather_advice_local
 from src.user import generate_user_profile
 
@@ -45,18 +46,21 @@ def main():
     del user_data['lastUpdated']
 
     selected_city = get_city_coordinates()
+    weather_data = get_weather_json(lat=selected_city['lat'], lon=selected_city['lon'])
 
-    content_json={
-        "weather_data": get_weather_json(lat=selected_city['lat'], lon=selected_city['lon']),
-        "user_data": user_data
-    }
+    content = build_decision_schema(
+        weather=weather_data,
+        personal=user_data,
+        activity_level="low",
+        time_of_day="daytime",
+    )
     # print(content_json)
 
     if config.get('llm_provider') == 'gemini':
         client = initial_gemini_client()
-        response = generate_content_with_retry(client, model_name=config.get('gemini_model'), prompt=json.dumps(content_json))
+        response = generate_content_with_retry(client, model_name=config.get('gemini_model'), prompt=json.dumps(content))
     else:
-        response = get_bioweather_advice_local(model_name=config.get('ollama_model'), content=json.dumps(content_json))
+        response = get_bioweather_advice_local(model_name=config.get('ollama_model'), content=json.dumps(content))
     print(f"AI建議: {response}")
 
 
