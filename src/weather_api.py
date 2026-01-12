@@ -25,7 +25,7 @@ def get_weather_json(lat=25.07, lon=121.57):
             "precipitation": current['precipitation']
         }
 
-        return json.dumps(weather_output, indent=4, ensure_ascii=False)
+        return weather_output
 
     except Exception as e:
-        return json.dumps({"error": str(e)})
+        return {"error": str(e)}
