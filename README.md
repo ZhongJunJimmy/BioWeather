@@ -1,143 +1,83 @@
 # BioWeather
 
-一個基於天氣資料與個人化體感偏好的「個人化穿衣建議」小工具。
+BioWeather 是一個結合即時天氣與個人化體感偏好的「個人化穿衣與生活建議」小工具，主要針對台灣主要縣市，利用 Open-Meteo 取得天氣資料，再透過 LLM（支援 Google Gemini 或本機 Ollama）產生自然、可執行的建議。
 
-主要功能：取得當前城市天氣（使用 Open-Meteo 公開 API）並結合使用者的體感偏好，透過 Google Gemini（透過 `google-genai` 套件）產生簡短、生活化的穿衣建議。
+**主要功能**
+- 取得指定城市即時天氣（使用 Open-Meteo）。
+- 根據使用者在 `data/userData.json` 的偏好（耐寒/耐熱/風敏感/濕度敏感）計算體感分類。
+- 使用 LLM（Gemini 或 Ollama）將天氣與個人化決策 schema 轉成生活化建議。
+- 支援 CLI 互動問卷與簡易的 FastAPI 範例路由。
 
-**目標使用者**：想要每天快速知道「今天該怎麼穿」的使用者，特別適合台灣主要縣市的查詢。
-
----
-
-**特色**
-
-- 結合即時天氣與使用者偏好，給出單一明確的穿衣建議。
-- 使用 Open-Meteo（無需金鑰）取得氣象資料。
-- 使用 Google Gemini（需設定 API Key）生成自然、精簡的建議文字。
-
----
+**重點檔案**
+- `main.py`：程式進入點，包含 CLI 問卷流程與可啟動的 FastAPI 範例路由。
+- `requirements.txt`：專案相依套件。
+- `config.json`：LLM 設定（`llm_provider`、模型名稱等）。
+- `data/system_prompt.txt`：系統提示（system prompt），用於引導模型回應格式與內容。
+- `data/userData.json`：使用者偏好資料（程式會在不存在時建立）。
+- `src/user.py`：互動式問卷與使用者偏好建構。
+- `src/utils.py`：城市經緯度、體感分級與 decision schema 建構邏輯。
+- `src/weather_api.py`：呼叫 Open-Meteo，回傳整理後的氣象欄位（temperature/feels_like/humidity/wind_speed/precipitation）。
+- `src/ai_service.py`：LLM 呼叫封裝（支援 `google-genai` 與 `ollama`），包含重試與本地 fallback。
 
 **環境與相依性**
-
 - Python 3.8+
-- 主要套件（見 `requirements.txt`）:
-	- `google-genai`
-	- `requests`
-	- `python-dotenv`
-	- `ollama` (僅在使用本地 Ollama 時需要)
+- 主要相依請見 `requirements.txt`（包含 `google-genai`, `requests`, `python-dotenv`, `ollama`, `fastapi`, `uvicorn`）。
 
----
-
-**安裝**
-
-1. 取得程式碼：
-
-```bash
-git clone git@github.com:ZhongJunJimmy/BioWeather.git
-cd BioWeather
-```
-
-2. 建議建立虛擬環境並安裝相依：
-
+安裝建議：
 ```bash
 python -m venv .venv
-source .venv/bin/activate  # macOS / Linux
+.\
+# Windows PowerShell
+.\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 ```
 
-3. 若要使用 Gemini（AI 產生穿衣建議），請在根目錄建立一個 `.env`，並加入 Gemin API 金鑰環境變數（範例）：
-
-```
-GEMINI_API_KEY=your_gemini_api_key_here
-```
-
-（程式會透過 `python-dotenv` 載入 `.env`）
-
-注意：Open-Meteo API 為公開資料來源，不需 API Key。
-
----
-
-**設定 LLM 供應商（可選：Gemini 或 本地 Ollama）**
-
-本專案現在支援兩種 LLM 執行方式：
-
-- 使用遠端 Google Gemini（需要在 `.env` 設定 `GEMINI_API_KEY`）。
-- 使用本機 Ollama（需在系統安裝並執行 Ollama daemon，並確保指定模型已下載）。
-
-設定方式請編輯 `config.json`（專案根目錄），範例：
+**設定**
+- 編輯 `config.json` 以選擇 LLM 供應商與模型：
 
 ```json
 {
-	"llm_provider": "gemini",        
-	"ollama_model": "llama3.2",
-	"gemini_model": "gemini-2.5-flash"
+  "llm_provider": "ollama",
+  "ollama_model": "gemma3:4b",
+  "gemini_model": "gemini-2.5-flash"
 }
 ```
 
-- 將 `llm_provider` 設為 `gemini` 或 `ollama`，程式會依此決定呼叫哪個後端。
-- 若使用 `ollama`，請確保本機 Ollama 可用，且 `ollama_model` 填寫正確模型名稱。
+- 若使用 Gemini，請在根目錄建立 `.env` 並設定 `GEMINI_API_KEY`。
+- 若使用 Ollama，請確保本機已安裝並啟動 Ollama daemon，且模型已下載。
 
-程式啟動時會輸出目前使用的 LLM 供應商，例如：`使用 LLM 供應商: gemini`。
-
----
-
-**注意：system prompt 存放位置**
-
-系統提示（system prompt）已從程式內文移出，改為放在 `data/system_prompt.txt`，可直接編輯該檔以調整模型指令。
-
----
-
-**快速執行**
-
-執行主程式：
+**使用方式**
+1. CLI（互動式）
 
 ```bash
 python main.py
 ```
 
-流程說明：
-- 若 `data/userData.json` 不存在，程式會啟動一個簡短的體感偏好問卷（互動式輸入），並將結果儲存成 `data/userData.json`。
-- 接著會要求選擇縣市（互動式輸入），取得對應經緯度並呼叫 Open-Meteo 取得當前天氣。
-- 最後把天氣資料與使用者偏好送給 Gemini，輸出簡短的穿衣建議到終端機。
+流程：
+- 若 `data/userData.json` 不存在，程式會以互動式問卷建立個人化檔案。
+- 選擇城市後呼叫 Open-Meteo 獲取天氣，並根據偏好建構 decision schema。
+- 根據 `config.json` 決定呼叫 Gemini 或 Ollama，最後在終端輸出建議。
 
----
+2. FastAPI 範例（啟動 API 伺服器）
 
-**檔案與程式說明（重點）**
+```bash
+uvicorn main:app --reload --port 8000
+```
 
-- `main.py`：程式進入點，負責流程控制（載入用戶資料、選城市、取得天氣、呼叫 AI）。
-- `requirements.txt`：相依套件。
-- `data/userData.json`：儲存使用者的偏好分數與上次更新日（自動建立）。
-- `src/user.py`：互動式問卷與使用者偏好格式化為 `coldTolerance/heatTolerance/windSensitivity/humiditySensitivity`。
-- `src/utils.py`：內建台灣主要縣市經緯度，提供互動式選單給使用者選擇查詢城市。
-- `src/weather_api.py`：呼叫 Open-Meteo 取得即時天氣並回傳整理過的 JSON。
-- `src/ai_service.py`：封裝 Gemini（`google-genai`）的呼叫與重試邏輯，並包含系統提示（系統提示會指示模型產出穿衣建議的格式與限制）。
+Endpoint 範例：GET `/getBioWeatherAdvice/{city_id}` 回傳 LLM 產生的建議。
 
----
+**自訂與延伸**
+- 新增或修改城市：編輯 `src/utils.py` 中的 `city_map`。
+- 調整系統提示：編輯 `data/system_prompt.txt`（或 `src/ai_service.py` 的載入路徑）。
+- 調整重試策略或生成參數：編輯 `src/ai_service.py` 的對應設定。
 
-**使用者自訂與調整**
+**除錯建議**
+- 若遇到網路或 API 錯誤，先確認電腦能夠存取 `https://api.open-meteo.com`。
+- 若使用 Gemini，請檢查 `.env` 中的 `GEMINI_API_KEY` 是否正確。
+- 使用 Ollama 時，確認 Ollama daemon 正常執行並且模型名稱與 `config.json` 相符。
 
-- 若想修改城市或加入更多城市，可編輯 `src/utils.py` 的 `city_map`。
-- 若要調整 AI 提示（語氣、回覆長度、規則等），請修改 `src/ai_service.py` 中的 `SYSTEM_PROMPT`。
-
----
-
-**除錯與開發**
-
-- 若遇到 Gemini API 呼叫失敗，程式會依錯誤類型進行重試（內建最大重試次數）。可在 `src/ai_service.py` 調整 `max_retries` 與 `delay`。
-- 若想快速測試而不用呼叫 Gemini，可在 `main.py` 暫時替換 `generate_content_with_retry` 的呼叫，或在 `ai_service.py` 模擬回傳值。
-
----
-
-**貢獻**
-
-歡迎 fork、PR 與 issue。可能的改進方向：
-
-- 支援更多地區（國際化）
-- GUI 或行動裝置介面
-- 更豐富的使用者設定（活動屬性、穿衣風格偏好）
-
----
 
 **授權**
+- 採用專案根目錄的 `LICENSE` 條款。
 
-本專案採用 [LICENSE](LICENSE) 中的授權條款。
 
